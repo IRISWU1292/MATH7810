@@ -13,9 +13,9 @@ After Sync fork, GitHub already has the new week. Pushing from an old Codespace 
 
 If Sync fork **cannot** finish (only **Discard … commits** or **Open pull request**), do **not** discard yet. Merge the teacher’s updates in Codespace instead (section 4). If that is too messy, use the last-resort reset (section 5).
 
-Uncommitted files are **not** a merge conflict. If you `git pull` with **uncommitted** edits (saved on disk but not committed), Git often refuses (`commit or stash first`). Commit (or stash) first.
+Uncommitted files are **not** a merge conflict. If you `git pull` with **uncommitted** edits (saved on disk but not committed), Git often refuses (`commit or stash first`, or “would be overwritten by merge”). Commit (or stash) first — see **dirty working tree** in section 3.
 
-Source Control may say **Can't push refs to remote. Try running "Pull" first.** That means GitHub already has commits this Codespace does not. **Pull first** (merge), fix Stop A / Stop B if they appear, **then** Push. Do not force-push.
+Source Control may say **Can't push refs to remote. Try running "Pull" first.** That means GitHub already has commits this Codespace does not. **Pull first** (merge), fix Stop A / dirty working tree / Stop B if they appear, **then** Push. Do not force-push.
 
 ---
 
@@ -35,9 +35,11 @@ In Source Control, next to Commit, the button is a **sync** symbol (circular arr
 
 ---
 
-## 3. Two different errors
+## 3. Stops you may hit when pulling
 
 They often happen **one after the other**. They are not the same stop.
+
+Typical order: **Stop A** (how to combine histories) → **dirty working tree** (uncommitted edits block the merge) → **Stop B** (same lines clash inside a file). You may see only some of these.
 
 ### Stop A — terminal only: divergent branches
 
@@ -77,7 +79,32 @@ git pull
 
 One-off without changing config: `git pull --no-rebase`.
 
-`git config pull.rebase false` means: later `git pull` commands in **this repo** should **merge** (keep both histories and add a merge commit). It does **not** guarantee the merge will succeed. Different files / different regions usually combine automatically. Same spot → Stop B.
+`git config pull.rebase false` means: later `git pull` commands in **this repo** should **merge** (keep both histories and add a merge commit). It does **not** guarantee the merge will succeed. Uncommitted edits on a file the remote also changes → dirty working tree (next). Different files / different regions usually combine automatically. Same committed spot → Stop B.
+
+### Between A and B — dirty working tree (uncommitted edits)
+
+After you clear Stop A and run `git pull` again, the terminal may show:
+
+```text
+error: Your local changes to the following files would be overwritten by merge:
+        week01/some_notebook.ipynb
+error: The following untracked working tree files would be overwritten by merge:
+        ...
+Aborting
+Merge with strategy ort failed.
+```
+
+(Wording varies slightly: “commit or stash them” is the same idea.)
+
+**What it means:** Stop A is done — Git is ready to **merge**. It has **not** started combining file contents yet. You still have **saved but uncommitted** edits (or an untracked file) on a path the incoming merge would replace. Git refuses so it does not overwrite your work on disk. That is a **dirty working tree**, not Stop B.
+
+**What to do (pick one):**
+
+1. **Keep the notebook edits:** Commit them in Source Control (message → Commit), then `git pull` again. If the remote also changed the **same** cells, you may then hit Stop B.
+2. **Do not need those local edits:** Discard changes to that file in Source Control, then `git pull` again.
+3. **Park edits temporarily:** `git stash`, then `git pull`, then `git stash pop` if you still want them (that pop can also lead to Stop B).
+
+Commit (or stash / discard) **before** you expect a clean pull. Uncommitted files are **not** a merge conflict.
 
 ### Stop B — inside a file:
 
@@ -114,9 +141,9 @@ git status   # show whether this Codespace is ahead, behind, diverged, or clean 
 
 Should be clean (not “merging” / not “unmerged paths”).
 
-That is **not** quite Stop B:
+That is **not** Stop B:
 
-- The local file is **not committed** → pull often says “commit or stash first,” or “your local changes would be overwritten.” That is a **dirty working tree**. It is **not** Stop B.  
+- Uncommitted / would-be-overwritten edits → **dirty working tree** (section above), not Stop B.  
 - **Sync fork** may refuse with only **Discard N commits** / **Open pull request**, and **no** conflict editor. That is still a conflict, but you fix it in Codespace (section 4), not by discarding.
 
 **No Stop B:** Git can merge automatically (different files, or different cells that do not overlap). Same name + different content does **not** always cause a conflict.
@@ -172,6 +199,6 @@ If the merge UI is stuck and you only need the teacher’s latest files (and can
 3. Delete or stop the old Codespace.
 4. **Create a new Codespace** from **your fork**.
 
-The new Codespace starts from the updated fork — usually **no** Stop A / Stop B leftover from the old session.
+The new Codespace starts from the updated fork — usually **no** Stop A / dirty working tree / Stop B leftover from the old session.
 
 This is **not** the usual fix. Prefer section 3 or 4 if you must keep your commits. Only use Discard + new Codespace when you accept losing that fork history.
